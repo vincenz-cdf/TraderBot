@@ -24,50 +24,49 @@ df = df.set_index(df['timestamp'])
 df.index = pd.to_datetime(df.index, unit='ms')
 del df['timestamp']
 
-#Definition des stratégies : moyenne mobile exponentielle 28/48 + RSI
 dfTest = df.copy()
-dfTest['EMA28']=ta.trend.ema_indicator(df['close'], 28)
-dfTest['EMA48']=ta.trend.ema_indicator(df['close'], 48)
-dfTest['STOCH_RSI']=ta.momentum.stochrsi(df['close'])
+
+dfTest['EMA28']=ta.trend.ema_indicator(dfTest['close'], 28)
+dfTest['EMA48']=ta.trend.ema_indicator(dfTest['close'], 48)
+dfTest['STOCH_RSI']=ta.momentum.stochrsi(dfTest['close'])
 dfTest
 
-# Realisation d'un Backtest
 dt = None
 dt = pd.DataFrame(columns = ['date','position', 'price', 'frais' ,'fiat', 'coins', 'wallet', 'drawBack'])
 
-eur = 1000
-initalWallet = eur
+usdt = 100
+initalWallet = usdt
 coin = 0
-wallet = 1000
+wallet = 100
 lastAth = 0
 lastIndex = df.first_valid_index()
 fee = 0.0007
 
 for index, row in dfTest.iterrows():
   #Buy
-  if row['EMA28'] > row['EMA48'] and row['STOCH_RSI'] < 0.8 and  eur > 0:
-    coin = eur / row['close']
+  if row['EMA28'] > row['EMA48'] and row['STOCH_RSI'] < 0.8 and  usdt > 0:
+    coin = usdt / row['close']
     frais = fee * coin
     coin = coin - frais
-    eur = 0
+    usdt = 0
     wallet = coin * row['close']
     if wallet > lastAth:
       lastAth = wallet
-    # print("Buy COIN at",df['close'][index],'$ the', index)
-    myrow = {'date': index,'position': "Buy",'price': row['close'],'frais': frais * row['close'],'fiat': eur,'coins': coin,'wallet': wallet,'drawBack':(wallet-lastAth)/lastAth}
+      print("Buy COIN at",df['close'][index],'$ the', index)
+    myrow = {'date': index,'position': "Buy",'price': row['close'],'frais': frais * row['close'],'fiat': usdt,'coins': coin,'wallet': wallet,'drawBack':(wallet-lastAth)/lastAth}
     dt = dt.append(myrow,ignore_index=True)
 
   #Sell
   if row['EMA28'] < row['EMA48'] and row['STOCH_RSI'] > 0.2 and coin > 0:
-    eur = coin * row['close']
-    frais = fee * eur
-    eur = eur - frais
+    usdt = coin * row['close']
+    frais = fee * usdt
+    usdt = usdt - frais
     coin = 0
-    wallet = eur
+    wallet = usdt
     if wallet > lastAth:
       lastAth = wallet
-    # print("Sell COIN at",df['close'][index],'$ the', index)
-    myrow = {'date': index,'position': "Sell",'price': row['close'],'frais': frais,'fiat': eur,'coins': coin,'wallet': wallet,'drawBack':(wallet-lastAth)/lastAth}
+      print("Sell COIN at",df['close'][index],'$ the', index)
+    myrow = {'date': index,'position': "Sell",'price': row['close'],'frais': frais,'fiat': usdt,'coins': coin,'wallet': wallet,'drawBack':(wallet-lastAth)/lastAth}
     dt = dt.append(myrow,ignore_index=True)
   
   lastIndex = index
@@ -91,7 +90,7 @@ holdPorcentage = ((lastClose - iniClose)/iniClose) * 100
 algoPorcentage = ((wallet - initalWallet)/initalWallet) * 100
 vsHoldPorcentage = ((algoPorcentage - holdPorcentage)/holdPorcentage) * 100
 
-print("Starting balance : 1000 $")
+print("Starting balance :",initalWallet,"$")
 print("Final balance :",round(wallet,2),"$")
 print("Performance vs US Dollar :",round(algoPorcentage,2),"%")
 print("Buy and Hold Performence :",round(holdPorcentage,2),"%")
@@ -108,3 +107,4 @@ print("Worst drawBack", str(100*round(dt['drawBack'].min(),2)),"%")
 print("Total fee : ",round(dt['frais'].sum(),2),"$")
 
 dt[['wallet','price']].plot(subplots=True, figsize=(12,10))
+print('PLOT')
